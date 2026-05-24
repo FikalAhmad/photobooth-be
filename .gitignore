@@ -1,0 +1,10 @@
+.env
+.env.example
+/vendor
+.vscode
+*.sublime-project
+*.sublime-workspace
+*.idea
+*.log
+*.zip
+*.rar
