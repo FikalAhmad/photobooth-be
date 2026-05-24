@@ -43,7 +43,7 @@ func Load() (DBConfig, error) {
 	}
 
 	config.DB_PORT = getEnv("PORT", "8080")
-	config.DATABASE_URL = getEnv("DATABASE_URL", "postgres://postgres:password@localhost:5432/hris_db?sslmode=disable")
+	config.DATABASE_URL = getEnv("DATABASE_URL", "postgres://postgres:password@localhost:5432/latihan?sslmode=disable")
 
 	if maxIdle := getEnv("DB_MAX_IDLE_CONNS", ""); maxIdle != "" {
 		if val, err := strconv.Atoi(maxIdle); err == nil {

@@ -1,27 +1,74 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
-	"photobooth-be/internal/handle"
+	"os"
+	"photobooth-be/internal/config"
+	"photobooth-be/internal/handler"
+	"photobooth-be/internal/middleware"
+	"photobooth-be/internal/repository"
+	"photobooth-be/internal/service"
 
-	"github.com/joho/godotenv"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 )
 
 func main() {
-	// Memuat file .env menggunakan godotenv
-	err := godotenv.Load()
+
+	config.Load()
+
+	db, err := config.NewPostgresDB()
 	if err != nil {
-		fmt.Println("Warning: Tidak dapat memuat file .env, menggunakan environment variables sistem")
+		log.Fatal(err)
 	}
 
-	http.HandleFunc("/login", handle.HandleLogin)
-	http.HandleFunc("/callback", handle.HandleCallback)
-
-	fmt.Println("starting server on http://localhost:8080")
-	err = http.ListenAndServe(":8080", nil)
-	if err != nil {
-		log.Fatalf("Server failed to start: %v\n", err)
+	oauthConfig := &oauth2.Config{
+		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
+		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		RedirectURL:  os.Getenv("GOOGLE_REDIRECT_URL"),
+		Scopes: []string{
+			"https://www.googleapis.com/auth/userinfo.email",
+			"https://www.googleapis.com/auth/userinfo.profile",
+		},
+		Endpoint: google.Endpoint,
 	}
+
+	userRepo := repository.NewUserRepository(db)
+
+	authService := service.NewAuthService(
+		userRepo,
+		oauthConfig,
+	)
+
+	authHandler := handler.NewAuthHandler(
+		authService,
+		oauthConfig,
+	)
+
+	http.HandleFunc("/auth/google", authHandler.GoogleLogin)
+
+	http.HandleFunc(
+		"/auth/google/callback",
+		authHandler.GoogleCallback,
+	)
+	http.HandleFunc(
+		"/auth/refresh",
+		authHandler.RefreshToken,
+	)
+
+	protectedHandler := http.HandlerFunc(
+		authHandler.Profile,
+	)
+
+	http.Handle(
+		"/profile",
+		middleware.AuthMiddleware(
+			protectedHandler,
+		),
+	)
+
+	log.Println("server running on :8080")
+
+	http.ListenAndServe(":8080", nil)
 }
