@@ -57,7 +57,7 @@ func AuthMiddleware(
 		token, err := jwt.ParseWithClaims(
 			tokenString,
 			claims,
-			func(token *jwt.Token) (interface{}, error) {
+			func(token *jwt.Token) (any, error) {
 
 				return []byte(
 					os.Getenv("SESSION_SECRET"),

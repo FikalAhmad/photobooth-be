@@ -29,7 +29,9 @@ func NewAuthHandler(
 
 func (h *AuthHandler) GoogleLogin(w http.ResponseWriter, r *http.Request) {
 
-	url := h.oauth.AuthCodeURL("state-token")
+	state := helper.GenerateStateOauthCookie(w)
+
+	url := h.oauth.AuthCodeURL(state)
 
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
@@ -38,6 +40,24 @@ func (h *AuthHandler) GoogleCallback(
 	w http.ResponseWriter,
 	r *http.Request,
 ) {
+
+	// 1. Ambil state dari query parameter dari Google
+	state := r.URL.Query().Get("state")
+
+	// 2. Ambil state dari cookie kita
+	cookie, err := r.Cookie("oauth_state")
+	if err != nil || cookie.Value != state {
+		http.Error(w, "invalid oauth state", http.StatusBadRequest)
+		return
+	}
+
+	// 3. Hapus cookie state (opsional agar sekali pakai)
+	http.SetCookie(w, &http.Cookie{
+		Name:   "oauth_state",
+		Value:  "",
+		Path:   "/",
+		MaxAge: -1,
+	})
 
 	code := r.URL.Query().Get("code")
 
@@ -66,6 +86,12 @@ func (h *AuthHandler) GoogleCallback(
 		return
 	}
 
+	err = h.authService.UpdateRefreshToken(user.ID, refreshToken)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
 	http.SetCookie(w, &http.Cookie{
 		Name:     "refresh_token",
 		Value:    refreshToken,
@@ -75,9 +101,12 @@ func (h *AuthHandler) GoogleCallback(
 		MaxAge:   604800,
 	})
 
-	redirectURL :=
-		"http://localhost:5173/oauth-success?token=" +
-			accessToken
+	frontendURL := os.Getenv("FRONTEND_URL")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:5173"
+	}
+
+	redirectURL := frontendURL + "/oauth-success?token=" + accessToken
 
 	http.Redirect(
 		w,
@@ -127,7 +156,7 @@ func (h *AuthHandler) RefreshToken(
 	token, err := jwt.ParseWithClaims(
 		refreshToken,
 		claims,
-		func(token *jwt.Token) (interface{}, error) {
+		func(token *jwt.Token) (any, error) {
 
 			return []byte(
 				os.Getenv("SESSION_SECRET"),
