@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 type contextKey string
@@ -14,8 +15,8 @@ type contextKey string
 const UserContextKey contextKey = "user"
 
 type JWTClaims struct {
-	UserID int    `json:"user_id"`
-	Email  string `json:"email"`
+	UserID uuid.UUID `json:"user_id"`
+	Email  string    `json:"email"`
 	jwt.RegisteredClaims
 }
 

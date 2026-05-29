@@ -5,27 +5,28 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 type JWTClaims struct {
-	UserID int    `json:"user_id"`
-	Email  string `json:"email"`
+	UserID uuid.UUID `json:"user_id"`
+	Email  string    `json:"email"`
 	jwt.RegisteredClaims
 }
 
 type AccessTokenClaims struct {
-	UserID int    `json:"user_id"`
-	Email  string `json:"email"`
+	UserID uuid.UUID `json:"user_id"`
+	Email  string    `json:"email"`
 	jwt.RegisteredClaims
 }
 
 type RefreshTokenClaims struct {
-	UserID int `json:"user_id"`
+	UserID uuid.UUID `json:"user_id"`
 	jwt.RegisteredClaims
 }
 
 func GenerateJWT(
-	userID int,
+	userID uuid.UUID,
 	email string,
 ) (string, error) {
 
@@ -50,7 +51,7 @@ func GenerateJWT(
 }
 
 func GenerateAccessToken(
-	userID int,
+	userID uuid.UUID,
 	email string,
 ) (string, error) {
 
@@ -75,7 +76,7 @@ func GenerateAccessToken(
 }
 
 func GenerateRefreshToken(
-	userID int,
+	userID uuid.UUID,
 ) (string, error) {
 
 	claims := RefreshTokenClaims{

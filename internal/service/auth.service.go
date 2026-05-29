@@ -6,12 +6,13 @@ import (
 	"photobooth-be/internal/model"
 	"photobooth-be/internal/repository"
 
+	"github.com/google/uuid"
 	"golang.org/x/oauth2"
 )
 
 type AuthService interface {
 	HandleGoogleLogin(code string) (*model.User, error)
-	UpdateRefreshToken(userID int, token string) error
+	UpdateRefreshToken(userID uuid.UUID, token string) error
 }
 
 type authService struct {
@@ -80,6 +81,6 @@ func (s *authService) HandleGoogleLogin(code string) (*model.User, error) {
 	return newUser, nil
 }
 
-func (s *authService) UpdateRefreshToken(userID int, token string) error {
+func (s *authService) UpdateRefreshToken(userID uuid.UUID, token string) error {
 	return s.repo.UpdateRefreshToken(userID, token)
 }
